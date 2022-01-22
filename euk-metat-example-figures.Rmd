@@ -16,7 +16,7 @@ output:
     toc_depth: '4'
 
 knit: (function(input_file, encoding) {
-  out_dir <- 'root';
+  out_dir <- 'r-gitpage-compile';
   rmarkdown::render(input_file,
  encoding=encoding,
  output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
