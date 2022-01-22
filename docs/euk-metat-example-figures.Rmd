@@ -1,0 +1,160 @@
+---
+title: "Example analysis eukaryotic metatranscriptome"
+author: "Sarah Hu"
+date: "1/19/2022"
+output: 
+  html_document:
+    number_sections: true
+    theme: cosmo
+    highlight: kate
+    collapsed: false
+    toc: true
+    toc_depth: 4
+    toc_float: true
+  pdf_document:
+    toc: true
+    toc_depth: '4'
+
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy = FALSE)
+```
+
+# Background
+
+Data derived from [Hu _et al._ 2018](https://doi.org/10.1111/1462-2920.14259), complete github can be found [here](https://github.com/shu251/SPOT_metatranscriptome).
+
+## Metatranscriptome survey from the San Pedro Ocean Time-series station
+
+_background on environment and research questions_
+
+## Data analysis
+
+_summary of metaT data analysis done so far_
+
+Question for ordination analysis: **How similar are the dominant microeukaryote taxonomic groups at each depth?**
+
+In order to appropriately assess across different taxonomic groups and sample depths, we subset the read counts so there were not zeroes. Meaning, we retained read counts of shared KEGG IDs across the 5 taxonomic groups. This subset of shared counts was created first (see 'counts-bytaxa-sharedKeggIDs.csv').
+
+
+Below R script will walk through importing this data, performing normalization (considering replicates), and downstream ordination.
+
+# Set up working R environment & import data
+
+Load libraries needed.
+```{r}
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# 
+# BiocManager::install("edgeR")
+# install.packages("tidyverse")
+# install.packages("vegan)
+
+library(tidyverse)
+library(edgeR)
+library(vegan)
+```
+
+Import .csv file
+```{r}
+countfile <- read.csv("counts-bytaxa-sharedKeggIDs.csv")
+
+# names(countfile) # column names
+```
+
+Normalize with edgeR. Using the ```DGEList()``` command to assign which columns are count data, KEGG/annotation information, and replicates for the 3 sample depths.
+```{r}
+dge.metaT.cca <- DGEList(counts = countfile[,3:15],
+                         genes = countfile[1:2], 
+                         group=c(rep("Surface",6),
+                                 rep("Deep_150m",3),
+                                 rep("Deep_890m",4)))
+# List library size, and samples as grouped replicates.
+dge.metaT.cca$samples
+```
+Note the last column from the previous output lists the 'norm.factors'. In this next step we will do a normalization called TMM or trimmed mean
+```{r}
+#normalize library using trimmed mean of M-values
+data <- calcNormFactors(dge.metaT.cca, method = "TMM") 
+# ?calcNormFactors() #explore other options
+```
+
+Change to normalized counts per million (not logged)
+```{r}
+cpm_data <- cpm(data, normalized.lib.sizes=TRUE, log=FALSE)
+cpm_data <- as.data.frame(cpm_data)  
+
+# Compile with annotation information ($genes)
+cca_cpm <- data.frame(data$genes, cpm_data)
+```
+
+```{r}
+#Calculate relative abundance the mean CPM by taxonomic group.
+norm.m.data_CPM <- cca_cpm %>% 
+  pivot_longer(starts_with("Sample")) %>% 
+  group_by(Level2, name) %>% 
+  mutate(count_norm = value/sum(value)) %>% 
+  select(-value) %>% 
+  pivot_wider(names_from = K0_number, values_from = count_norm, values_fill = 0) %>%
+  unite(tmp, Level2, name, sep = "_", remove = FALSE) %>% 
+  select(tmp, Level2, variable = name, everything()) %>% 
+  column_to_rownames(var = "tmp") %>% 
+  data.frame
+# head(norm.m.data_CPM)
+```
+
+Add in values for symbols and colors.
+```{r}
+#format a key:
+key_forPCA<-function(df){
+  df$shape<-22 #surface
+  deep150<-c("Sample25", "Sample26", "Sample27")
+  df$shape[df$variable %in% deep150]=21
+  deep890<-c("Sample28", "Sample29", "Sample30", "Sample31")
+  df$shape[df$variable %in% deep890]=24
+  #select taxa:
+  df$taxcolor[df$Level2=="Dinoflagellate"]="#c2a5cf"
+  df$taxcolor[df$Level2=="Ciliate"]="#d53e4f"
+  df$taxcolor[df$Level2=="Diatom"]="#e6f598"
+  df$taxcolor[df$Level2=="Chlorophyte"]="#5aae61"
+  df$taxcolor[df$Level2=="Haptophyte"]="#f46d43"
+  return(df)
+}
+cpm_PCA.w.key<-key_forPCA(norm.m.data_CPM)
+```
+
+```{r}
+# Isolate key and count data only
+CCA_data <- cpm_PCA.w.key %>% select(-Level2, -variable, -shape, -taxcolor) #only numerica in CCA input information
+
+key <- cpm_PCA.w.key %>% select(Level2, variable, shape, taxcolor)
+```
+
+### CCA input and isolation of eigenvalues:
+Input data is all numeric with rownames equal to the categories I want to show in the legend of my ordination. In this case, it is sample (depth) and taxa. Values are normalized counts (Relative abundance), and columns are each of the KEGG identities of the reads.
+```{r}
+# head(CCA_data) # View data frame structure this way
+set.seed(111) #for reproducibility
+ca <- cca(CCA_data, scaling=TRUE)
+```
+
+Using base R to plot outputs.
+```{r, fig.height=5, fig.width=7}
+#CCA ploting set up:
+par(xpd = FALSE, oma = c(0,0,0,8)) 
+# Isolate variances for axes
+eig<-eigenvals(ca); x<-signif((eig[1]*100),3); y<-signif((eig[2]*100),3) #extract variances for CCA1 and CCA2 axes
+
+plot(ca,type=c("points"),display=c("wa", "sites"),main="",xlab=bquote(.(x)*"%"), ylab=(bquote(.(y)*"%")))
+points(ca,pch=key$shape,col="black",bg=key$taxcolor,cex=1.5)
+par(xpd=NA) 
+legend(4,1.5,c("Surface", "150m", "890m"),pch=c(0,1,2),col=c("black"),cex=1,pt.cex=1.6,bty="n",y.intersp=2)
+legend(4,-1.5,c("Dinoflagellate","Ciliate","Haptophyte","Diatom","Chlorophyte"),pch=22,pt.bg=c("#c2a5cf","#d53e4f", "#f46d43", "#e6f598", "#5aae61"),col=c("black","black","black","black","black"),y.intersp=2,bty="n",pt.cex=2,cex=1)
+```
+
