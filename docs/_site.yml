@@ -11,4 +11,4 @@ navbar:
       href: volcano.html
 output:
  html_document: default
- theme: cosmo
+  theme: cosmo
