@@ -1,0 +1,82 @@
+---
+title: "Volcano Plots"
+author: "Rob Lampe"
+date: "1/29/2022"
+---
+
+Example code for making volcano plot
+
+```{r}
+library(ggplot2)
+library(scales)
+```
+
+Read in results from DESeq2.
+The columns of interest from DESeq2 results are log2FoldChange and padj,
+but these can be substituted from results from other calculations
+
+```{r}
+res <- read.csv('deseq2_results.csv')
+```
+
+static vars
+
+```{r}
+max_log_p <- 5
+alpha <- 0.05
+```
+
+Remove points where padj = NA and log10 transform p-values
+See DESeq2 documentation for explanation: 
+https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pvaluesNA
+
+```{r}
+res<- res[!is.na(res$padj),]
+res$log_p <- -log10(res$padj)
+```
+
+Set max -log10(P-value) to 5
+
+```{r}
+res[res$log_p > max_log_p,]$log_p <- max_log_p 
+```
+
+Function for reversed log10 scale
+Source: https://stackoverflow.com/a/11054781
+
+```{r}
+reverselog_trans <- function(base = exp(1)) {
+  trans <- function(x) -log(x, base)
+  inv <- function(x) base^(-x)
+  trans_new(paste0("reverselog-", format(base)), trans, inv, 
+            log_breaks(base = base), 
+            domain = c(1e-100, Inf))
+}
+```
+
+Plot
+
+```{r}
+ggplot(res, aes(x=log2FoldChange, y=log_p)) + 
+  geom_point(data = res[res$padj > alpha,], aes(x=log2FoldChange, y=log_p), color="grey", size = 2.5) + # points with padj > alpha are grey 
+  geom_point(data = res[res$padj <= alpha & res$log_p < max_log_p,], aes(x=log2FoldChange, y=log_p), size = 2.5) + # point with padj < alpha and log10(padj) < max_log_p are black circles
+  geom_point(data = res[res$log_p == max_log_p,], aes(x=log2FoldChange, y=log_p), size = 2.5, shape = 17) + # points with padj < alpha and log10(padj) = max_log_p are black triangles
+  geom_vline(xintercept = 0, linetype = 5) +
+  geom_hline(yintercept = -log10(alpha), linetype = 5) + 
+  ylim(0, 5) +
+  scale_x_continuous(breaks = seq(-10, 10, by = 2), limits=c(-12, 12)) +
+  theme_bw() +
+  xlab(bquote(~log[2]~"fold change")) + ylab(expression(paste("-log(adjusted ", italic("p"), "-value)", sep=""))) +
+  theme(panel.border = element_rect(colour = "black"), 
+        axis.line = element_line(colour = "black"), 
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.title=element_text(size=18), 
+        axis.text = element_text(size=16, colour="black"),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+
+uncomment to save as pdf
+```{r}
+#ggsave("volcano_plot.pdf", width = 6, height = 8)
+```
