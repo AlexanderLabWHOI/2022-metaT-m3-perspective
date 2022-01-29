@@ -2,6 +2,12 @@
 title: "Volcano Plots"
 author: "Rob Lampe"
 date: "1/29/2022"
+
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'volcano.html'))})
 ---
 
 Example code for making volcano plot
