@@ -5,7 +5,7 @@ date: "1/19/2022"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, tidy = FALSE)
+#knitr::opts_chunk$set(echo = TRUE, tidy = FALSE)
 ```
 
 # Background
