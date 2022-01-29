@@ -7,7 +7,3 @@ navbar:
       href: index.html
     - text: "Volcano plot"
       href: volcano.html
-output:
-  html_document:
-    theme: cosmo
-    highlight: kate
