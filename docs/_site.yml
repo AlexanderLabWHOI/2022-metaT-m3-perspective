@@ -3,8 +3,10 @@ output_dir: "docs"
 navbar:
   title: "2022-metaT-m3-perspective"
   left:
-    - text: "Ordination"
+    - text: "Home"
       href: index.html
+    - text: "Ordination"
+      href: ordination.html
     - text: "Volcano plot"
       href: volcano.html
 output:

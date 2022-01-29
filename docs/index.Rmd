@@ -1,0 +1,23 @@
+---
+title: "index"
+author: "Natalie Cohen"
+date: "1/29/2022"
+output: 
+  html_document:
+    number_sections: true
+    theme: cosmo
+    highlight: kate
+    collapsed: false
+    toc: true
+    toc_depth: 4
+    toc_float: true
+  pdf_document:
+    toc: true
+    toc_depth: '4'
+
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+---
