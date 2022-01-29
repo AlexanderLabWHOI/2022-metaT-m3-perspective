@@ -1,0 +1,11 @@
+---
+title: "Marine microeukaryote metatranscriptomics: sample processing and bioinformatic workflow recommendations for ecological applications"
+author: "Cohen, Alexander, Krinos, Hu, Lampe"
+date: "1/29/2022"
+---
+
+## Resources:
+
+[**Making ordinations**](ordination.html): Creating ordinations with metatranscriptomes collected across depths, separated by taxonomic groups
+
+[**Creating volcano plots**](volcano.html): Differential expression between treatments as determined with DESeq2
