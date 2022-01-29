@@ -6,6 +6,6 @@ date: "1/29/2022"
 
 ## Resources:
 
-[**Making ordinations**](ordination.html): Creating ordinations with metatranscriptomes collected across depths, separated by taxonomic groups
+[**Making ordinations**](ordination.html): Normalizing with EdgeR and creating ordinations with metatranscriptomes collected across depths and separated by taxonomic groups
 
-[**Creating volcano plots**](volcano.html): Differential expression between treatments as determined with DESeq2
+[**Creating volcano plots**](volcano.html): Differential expression between experimental treatments as determined with DESeq2
